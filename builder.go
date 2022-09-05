@@ -1,4 +1,4 @@
-package datasource_cache
+package cache
 
 import "time"
 
