@@ -52,7 +52,7 @@ func (r *RedisCache[T, V]) Get(ctx context.Context, key *Key[V], requiredModelVe
 	return &item, nil
 }
 
-func (r *RedisCache[T, V]) chunkBy(items []string, chunkSize int) (chunks [][]string) {
+func (r *RedisCache[T, V]) chunkBy(items []*Key[V], chunkSize int) (chunks [][]*Key[V]) {
 	for chunkSize < len(items) {
 		items, chunks = items[chunkSize:], append(chunks, items[0:chunkSize:chunkSize])
 	}
@@ -66,12 +66,14 @@ type redisChunkResponse[T, V any] struct {
 }
 
 func (r *RedisCache[T, V]) MGet(ctx context.Context, keys []*Key[V], requiredModelVersion uint16) (map[*Key[V]]*T, []*Key[V], error) {
-	toGet1 := make([]string, 0, len(keys))
+	toGet1 := make([]*Key[V], 0, len(keys))
+
 	for _, k := range keys {
-		toGet1 = append(toGet1, k.Key)
+		toGet1 = append(toGet1, k)
 	}
 
 	chunks := r.chunkBy(toGet1, r.chunkSize)
+
 	var respChannels []chan redisChunkResponse[T, V]
 
 	for _, chunk := range chunks {
@@ -84,7 +86,13 @@ func (r *RedisCache[T, V]) MGet(ctx context.Context, keys []*Key[V], requiredMod
 				close(ch)
 			}()
 
-			cmd := r.client.MGet(ctx, chCopy...)
+			strSlice := make([]string, 0, len(chCopy))
+
+			for _, v := range chCopy {
+				strSlice = append(strSlice, v.Key)
+			}
+
+			cmd := r.client.MGet(ctx, strSlice...)
 
 			if cmd.Err() != nil {
 				ch <- redisChunkResponse[T, V]{
@@ -98,7 +106,7 @@ func (r *RedisCache[T, V]) MGet(ctx context.Context, keys []*Key[V], requiredMod
 
 			for i, v := range cmd.Val() {
 				if v == nil {
-					missing = append(missing, keys[i])
+					missing = append(missing, chCopy[i])
 					continue
 				}
 
@@ -115,7 +123,7 @@ func (r *RedisCache[T, V]) MGet(ctx context.Context, keys []*Key[V], requiredMod
 
 				if err := msgpack.Unmarshal(toUnpack, &item); err != nil {
 					zerolog.Ctx(ctx).Err(err).Send() // todo looks like cache is invalid
-					missing = append(missing, keys[i])
+					missing = append(missing, chCopy[i])
 					continue
 				}
 
@@ -123,7 +131,7 @@ func (r *RedisCache[T, V]) MGet(ctx context.Context, keys []*Key[V], requiredMod
 					continue
 				}
 
-				results[keys[i]] = &item
+				results[chCopy[i]] = &item
 			}
 
 			ch <- redisChunkResponse[T, V]{
