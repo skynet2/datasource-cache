@@ -1,16 +1,3 @@
-# Datasource Cache
-
-![build workflow](https://github.com/skynet2/datasource-cache/actions/workflows/build.yaml/badge.svg?branch=master)
-[![codecov](https://codecov.io/gh/skynet2/datasource-cache/branch/master/graph/badge.svg?token=5QV4Z8NR6V)](https://codecov.io/gh/skynet2/datasource-cache)
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/skynet2/datasource-cache)](https://pkg.go.dev/github.com/skynet2/datasource-cache?tab=doc)
-
-## Installation
-```shell
-go get github.com/skynet2/datasource-cache
-```
-
-## Quickstart
-```go
 package main
 
 import (
@@ -45,7 +32,7 @@ type dbRepo struct {
 
 func (d *dbRepo) GetTokens(ctx context.Context, tokens []string) (map[string]map[string]string, error) {
 	// retrieve data from db or any other source
-    // for example if we requested 10 tokens, but 8 was in cache, here we`ll have only 2 tokens to request
+
 	return map[string]map[string]string{}, nil
 }
 
@@ -144,4 +131,3 @@ func (t *translateService) GetTranslation(
 
 	return final, nil
 }
-```
