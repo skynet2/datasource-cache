@@ -1,0 +1,51 @@
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: rm -rf .git
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./
+          name: code
+          retention-days: 1
+  test:
+    runs-on: ubuntu-latest
+    container: golang:1.18-alpine
+    services:
+      redis:
+        image: redis
+    env:
+      ENVIRONMENT: ci
+    needs: [ download ]
+    steps:
+      - run: apk add build-base
+      - uses: actions/download-artifact@v2
+        with:
+          path: /source
+          name: code
+      - run: apk update && apk add --no-cache --update curl openssl git openssh-client build-base && mkdir -p /root/.ssh && mkdir -p /source
+      - run: cd /source && go mod vendor
+      - run: wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /source/
+        if: github.ref != 'refs/heads/master' && github.ref != 'refs/heads/qa' && github.ref != 'refs/heads/uat'
+      - run: cd /source && ./golangci-lint run ./... --timeout 5m
+        if: github.ref != 'refs/heads/master' && github.ref != 'refs/heads/qa' && github.ref != 'refs/heads/uat'
+      - run: cd /source && environment=ci go test -json -coverprofile=/root/coverage.txt -covermode=atomic ./... > /root/test.json
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: /root/coverage.txt
+          flags: unittests
+      - run: cat /root/test.json
+        if: always()
+      - uses: guyarb/golang-test-annotations@v0.5.0
+        if: always()
+        with:
+          test-results: /root/test.json
