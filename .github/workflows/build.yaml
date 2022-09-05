@@ -26,7 +26,7 @@ jobs:
     needs: [ download ]
     steps:
       - run: apk add build-base
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           path: /source
           name: code
