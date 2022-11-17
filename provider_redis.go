@@ -13,12 +13,12 @@ import (
 )
 
 type RedisCache[T Entity, V any] struct {
-	client    *redis.Client
+	client    redis.Cmdable
 	chunkSize int
 }
 
 func NewRedisCache[T Entity, V any](
-	client *redis.Client,
+	client redis.Cmdable,
 ) Provider[T, V] {
 	return &RedisCache[T, V]{
 		client:    client,
