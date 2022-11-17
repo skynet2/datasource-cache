@@ -2,22 +2,23 @@ package cache
 
 import (
 	"context"
-	"github.com/go-redis/redis/v8"
+	"time"
+
+	"github.com/go-redis/redis/v9"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/vmihailenco/msgpack/v5"
-	"time"
 )
 
 type RedisCache[T Entity, V any] struct {
-	client    *redis.Client
+	client    redis.Cmdable
 	chunkSize int
 }
 
 func NewRedisCache[T Entity, V any](
-	client *redis.Client,
+	client redis.Cmdable,
 ) Provider[T, V] {
 	return &RedisCache[T, V]{
 		client:    client,
@@ -66,13 +67,7 @@ type redisChunkResponse[T, V any] struct {
 }
 
 func (r *RedisCache[T, V]) MGet(ctx context.Context, keys []*Key[V], requiredModelVersion uint16) (map[*Key[V]]*T, []*Key[V], error) {
-	toGet1 := make([]*Key[V], 0, len(keys))
-
-	for _, k := range keys {
-		toGet1 = append(toGet1, k)
-	}
-
-	chunks := r.chunkBy(toGet1, r.chunkSize)
+	chunks := r.chunkBy(keys, r.chunkSize)
 
 	var respChannels []chan redisChunkResponse[T, V]
 
