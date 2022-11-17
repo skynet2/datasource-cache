@@ -3,12 +3,13 @@ package cache
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 type EntityToCache struct {
@@ -113,6 +114,7 @@ func TestOneLevelCacheSingleWithoutDataSource(t *testing.T) {
 }
 
 func TestOneLevelCacheMultiRecord(t *testing.T) {
+	ttl := 10 * time.Hour
 	rand.Seed(time.Now().Unix())
 
 	currentModelVersion := uint16(7)
@@ -136,7 +138,7 @@ func TestOneLevelCacheMultiRecord(t *testing.T) {
 	mockCacheProvider.EXPECT().MGet(context.TODO(), keysArr, currentModelVersion).
 		Return(nil, keysArr, nil)
 
-	mockCacheProvider.EXPECT().MSet(context.TODO(), mock.Anything, mock.Anything).
+	mockCacheProvider.EXPECT().MSet(context.TODO(), mock.Anything, ttl).
 		Run(func(ctx context.Context, values map[string]*EntityToCache, ttl time.Duration) {
 			assert.Equal(t, 2, len(values))
 			assert.Equal(t, values[key.Key].Value, "random_content")
@@ -144,6 +146,7 @@ func TestOneLevelCacheMultiRecord(t *testing.T) {
 		}).Return(nil)
 
 	ch := NewCacheBuilder[EntityToCache, int](currentModelVersion, mockCacheProvider).
+		WithTtl(ttl).
 		Build()
 
 	called := false

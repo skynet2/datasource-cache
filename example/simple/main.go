@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/go-redis/redis/v8"
+	"strings"
+
 	"github.com/rs/zerolog"
 	cache "github.com/skynet2/datasource-cache"
-	"strings"
 )
 
 func main() {
