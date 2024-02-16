@@ -24,8 +24,6 @@ func (e EntityToCache) GetCacheModelVersion() uint16 {
 
 // mockery --name="Provider" --case underscore --dir --output "." --with-expecter --inpackage --structname "mockProvider"
 func TestOneLevelCacheSingleToDataSource(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-
 	currentModelVersion := uint16(7)
 
 	mockCacheProvider := newMockProvider[EntityToCache, int](t)
@@ -70,8 +68,6 @@ func TestOneLevelCacheSingleToDataSource(t *testing.T) {
 }
 
 func TestOneLevelCacheSingleWithoutDataSource(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-
 	currentModelVersion := uint16(7)
 
 	mockCacheProvider := newMockProvider[EntityToCache, int](t)
@@ -115,8 +111,6 @@ func TestOneLevelCacheSingleWithoutDataSource(t *testing.T) {
 
 func TestOneLevelCacheMultiRecord(t *testing.T) {
 	ttl := 10 * time.Hour
-	rand.Seed(time.Now().Unix())
-
 	currentModelVersion := uint16(7)
 
 	mockCacheProvider := newMockProvider[EntityToCache, int](t)
@@ -180,8 +174,6 @@ func TestOneLevelCacheMultiRecord(t *testing.T) {
 }
 
 func TestOneLevelCacheMultiRecordWithoutDataSource(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-
 	currentModelVersion := uint16(7)
 
 	mockCacheProvider := newMockProvider[EntityToCache, int](t)
@@ -237,8 +229,6 @@ func TestOneLevelCacheMultiRecordWithoutDataSource(t *testing.T) {
 }
 
 func TestOneLevelCacheMultiRecordWitPartialDataSource(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-
 	currentModelVersion := uint16(7)
 
 	mockCacheProvider := newMockProvider[EntityToCache, int](t)
