@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-redis/redis/v9"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/vmihailenco/msgpack/v5"
