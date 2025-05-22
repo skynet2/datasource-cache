@@ -132,7 +132,8 @@ func TestOneLevelCacheMultiRecord(t *testing.T) {
 	mockCacheProvider.EXPECT().MGet(context.TODO(), keysArr, currentModelVersion).
 		Return(nil, keysArr, nil)
 
-	mockCacheProvider.EXPECT().MSet(context.TODO(), mock.Anything, ttl).
+	// This MSet is called asynchronously from MGet, which uses context.Background()
+	mockCacheProvider.EXPECT().MSet(context.Background(), mock.Anything, ttl).
 		Run(func(ctx context.Context, values map[string]*EntityToCache, ttl time.Duration) {
 			assert.Equal(t, 2, len(values))
 			assert.Equal(t, values[key.Key].Value, "random_content")
@@ -256,7 +257,9 @@ func TestOneLevelCacheMultiRecordWitPartialDataSource(t *testing.T) {
 			},
 		}, []*Key[int]{key}, nil)
 
-	mockCacheProvider.EXPECT().MSet(context.TODO(), mock.Anything, mock.Anything).
+	// This MSet is called asynchronously from MGet, which uses context.Background()
+	// The TTL will be the default TTL from the builder (5 * time.Minute) as WithTtl is not called.
+	mockCacheProvider.EXPECT().MSet(context.Background(), mock.Anything, 5*time.Minute).
 		Run(func(ctx context.Context, values map[string]*EntityToCache, ttl time.Duration) {
 			assert.Equal(t, 1, len(values))
 			assert.Equal(t, "random_content", values[key.Key].Value)

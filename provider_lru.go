@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/hashicorp/golang-lru/v2/expirablelru"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 // LRUCache represents an LRU cache provider.
 // T is constrained by the Entity interface, V is the type of the original value for a cache key.
 type LRUCache[T Entity, V any] struct {
-	lru       *expirablelru.LRU[string, *T]
+	lru       *expirable.LRU[string, *T]
 	chunkSize int
 }
 
@@ -31,9 +31,9 @@ func NewLRUCache[T Entity, V any](size int) Provider[T, V] {
 		size = DefaultLRUCacheSize
 	}
 
-	// expirablelru.NewLRU currently does not return an error.
+	// expirable.NewLRU currently does not return an error.
 	// If the underlying library changes to return an error, it should be handled here.
-	lruInstance := expirablelru.NewLRU[string, *T](size, nil, DefaultLRUCacheTTL)
+	lruInstance := expirable.NewLRU[string, *T](size, nil, DefaultLRUCacheTTL)
 
 	return &LRUCache[T, V]{
 		lru:       lruInstance,
@@ -52,9 +52,9 @@ func (c *LRUCache[T, V]) Get(ctx context.Context, key *Key[V], requiredModelVers
 		return nil, nil // Cache miss
 	}
 
-	// item is of type *T because LRU is expirablelru.LRU[string, *T]
-	// T is constrained by Entity, so item has GetCacheModelVersion()
-	if item.GetCacheModelVersion() != requiredModelVersion {
+	// item is of type *T because LRU is expirable.LRU[string, *T]
+	// T is constrained by Entity, so (*item) has GetCacheModelVersion()
+	if (*item).GetCacheModelVersion() != requiredModelVersion {
 		return nil, nil // Version mismatch, treat as cache miss
 	}
 
@@ -78,7 +78,7 @@ func (c *LRUCache[T, V]) MGet(ctx context.Context, keys []*Key[V], requiredModel
 		}
 
 		// item is of type *T
-		if item.GetCacheModelVersion() != requiredModelVersion {
+		if (*item).GetCacheModelVersion() != requiredModelVersion {
 			missingKeys = append(missingKeys, keyEntry) // Version mismatch
 			continue
 		}
@@ -96,9 +96,13 @@ func (c *LRUCache[T, V]) MSet(ctx context.Context, values map[string]*T, ttl tim
 	_ = ctx
 
 	for k, v := range values {
-		// AddWithTTL returns a boolean indicating if an item was evicted,
+		// The Add method of expirable.LRU (from hashicorp/golang-lru/v2/expirable)
+		// takes (key, value) and uses the global TTL set during NewLRU.
+		// The ttl parameter from MSet is ignored here.
+		// It returns a boolean indicating if an item was evicted,
 		// but the Provider interface MSet method does not require us to return it.
-		c.lru.AddWithTTL(k, v, ttl)
+		_ = ttl // Acknowledge ttl parameter is unused for this specific implementation
+		c.lru.Add(k, v)
 	}
 	return nil
 }
