@@ -159,14 +159,15 @@ func (r *RedisCache[T, V]) MGet(ctx context.Context, keys []*Key[V], requiredMod
 }
 
 func (r *RedisCache[T, V]) MSet(ctx context.Context, values map[string]*T, ttl time.Duration) error {
-	_, err := r.client.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+	_, err := r.client.TxPipelined(ctx, func(pipeline redis.Pipeliner) error {
 		for k, v := range values {
 			b, err := msgpack.Marshal(v)
 			if err != nil {
 				log.Logger.Err(err).Send()
 				continue
 			}
-			pipe.Set(ctx, k, b, ttl)
+
+			pipeline.Set(ctx, k, b, ttl)
 		}
 
 		return nil
