@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
@@ -160,32 +159,19 @@ func (r *RedisCache[T, V]) MGet(ctx context.Context, keys []*Key[V], requiredMod
 }
 
 func (r *RedisCache[T, V]) MSet(ctx context.Context, values map[string]*T, ttl time.Duration) error {
-	var multiErr error
-	finalArr := make([]interface{}, 0, len(values)*2)
+	_, err := r.client.TxPipelined(ctx, func(pipeline redis.Pipeliner) error {
+		for k, v := range values {
+			b, err := msgpack.Marshal(v)
+			if err != nil {
+				log.Logger.Err(err).Send()
+				continue
+			}
 
-	for k, v := range values {
-		if b, err := msgpack.Marshal(v); err != nil {
-			multiErr = multierror.Append(multiErr, errors.WithStack(err))
-			continue
-		} else {
-			finalArr = append(finalArr, k, b)
+			pipeline.Set(ctx, k, b, ttl)
 		}
-	}
 
-	if len(finalArr) == 0 {
-		return errors.Wrap(multiErr, "no items to continue")
-	}
+		return nil
+	})
 
-	if err := r.client.MSet(ctx, finalArr).Err(); err != nil {
-		log.Logger.Err(err).Send()
-		return errors.WithStack(err)
-	}
-
-	for key := range values {
-		if err := r.client.Expire(context.Background(), key, ttl).Err(); err != nil {
-			zerolog.Ctx(ctx).Err(err).Send()
-		}
-	}
-
-	return nil
+	return err
 }
